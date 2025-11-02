@@ -16,21 +16,14 @@ public class CollectibleItem : MonoBehaviour
         //    Debug.LogError("Inventory manager has not assigned");
         //}
     }
-
     void OnTriggerEnter2D(Collider2D collision)
     {
-        //if (collision.CompareTag("Player"))
-        //{
-        //    if (inventoryManager != null)
-        //    { 
-        //        // Add the item to the inventory
-        //        inventoryManager.AddItem(itemName, quantity, itemSprite);
-
-        //        // Destroy the collectible item from the scene
-        //        Destroy(gameObject);
-
-        //    }
-
-        //}
+        Debug.Log("Nabrak: " + collision.name);
+        if (collision.CompareTag("Player"))
+        {
+            Debug.Log("Kena Player!");
+            Destroy(gameObject);
+        }
     }
+
 }
