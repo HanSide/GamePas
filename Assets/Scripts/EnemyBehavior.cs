@@ -5,13 +5,13 @@ public class EnemyBehaviour : MonoBehaviour
     public float moveSpeed = 3.0f;
     private Transform player;
     private Rigidbody2D rb;
-    private SpriteRenderer sr; // Tambahin ini
+    private SpriteRenderer sr; 
     public int damage = 10;
 
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
-        sr = GetComponent<SpriteRenderer>(); // Ambil SpriteRenderer
+        sr = GetComponent<SpriteRenderer>(); 
         player = GameObject.FindWithTag("Player").transform;
     }
 
@@ -22,11 +22,10 @@ public class EnemyBehaviour : MonoBehaviour
             Vector2 direction = (player.position - transform.position).normalized;
             rb.linearVelocity = direction * moveSpeed;
 
-            // Flip sprite tergantung arah gerak
             if (direction.x > 0)
-                sr.flipX = false; // Ngadep kanan
+                sr.flipX = false;
             else if (direction.x < 0)
-                sr.flipX = true;  // Ngadep kiri
+                sr.flipX = true; 
         }
         else
         {

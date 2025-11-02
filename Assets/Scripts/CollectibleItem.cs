@@ -5,25 +5,42 @@ public class CollectibleItem : MonoBehaviour
     [SerializeField] private string itemName;
     [SerializeField] private Sprite itemSprite;
     [SerializeField] private int quantity = 1;
-
-    //private InventoryManager inventoryManager;
+    [TextArea]
+    [SerializeField] private string itemDescription;
+    private InventoryManager inventoryManager;
 
     void Start()
     {
-        //inventoryManager = FindAnyObjectByType<InventoryManager>();
-        //if (inventoryManager == null)
-        //{
-        //    Debug.LogError("Inventory manager has not assigned");
-        //}
-    }
-    void OnTriggerEnter2D(Collider2D collision)
-    {
-        Debug.Log("Nabrak: " + collision.name);
-        if (collision.CompareTag("Player"))
+        inventoryManager = InventoryManager.Instance;
+
+        if (inventoryManager == null)
         {
-            Debug.Log("Kena Player!");
-            Destroy(gameObject);
+            Debug.LogError("InventoryManager.Instance is null!");
         }
     }
 
+    void OnTriggerEnter2D(Collider2D collision)
+    {
+        if (collision.CompareTag("Player"))
+        {
+            if (inventoryManager != null)
+            {
+                inventoryManager.AddItem(itemName, quantity, itemSprite, itemDescription);
+            }
+            else
+            {
+                Debug.LogError("InventoryManager is null!");
+            }
+
+            if (MultiCollectibleCounter.Instance != null)
+            {
+                MultiCollectibleCounter.Instance.AddCollectible(itemName, quantity);
+            }
+            else
+            {
+                Debug.LogWarning("MultiCollectibleCounter.Instance is null! Counter UI won't update.");
+            }
+            Destroy(gameObject);
+        }
+    }
 }

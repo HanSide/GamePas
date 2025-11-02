@@ -15,6 +15,8 @@ public class PlayerBehavior : MonoBehaviour
         rb = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
         spriteRenderer = GetComponent<SpriteRenderer>();
+
+        Debug.Log("Player Start - Tag: " + gameObject.tag);
     }
 
     void Update()
@@ -23,29 +25,28 @@ public class PlayerBehavior : MonoBehaviour
         moveInput.y = Input.GetAxisRaw("Vertical");
         moveInput.Normalize();
 
-        // Update animator parameters
         if (moveInput.magnitude > 0)
         {
-            // Pakai absolute value untuk MoveX biar cuma perlu animasi kiri
+
             animator.SetFloat("MoveX", Mathf.Abs(moveInput.x));
             animator.SetFloat("MoveY", moveInput.y);
 
-            // Simpan arah terakhir
+  
             lastMove = moveInput;
 
-            // Handle flip untuk kiri/kanan
+ 
             if (moveInput.x > 0)
             {
-                spriteRenderer.flipX = true; // Kanan (mirror)
+                spriteRenderer.flipX = true;
             }
             else if (moveInput.x < 0)
             {
-                spriteRenderer.flipX = false; // Kiri (normal)
+                spriteRenderer.flipX = false; 
             }
         }
         else
         {
-            // Saat idle, set semua ke 0
+
             animator.SetFloat("MoveX", 0);
             animator.SetFloat("MoveY", 0);
         }
@@ -54,5 +55,10 @@ public class PlayerBehavior : MonoBehaviour
     void FixedUpdate()
     {
         rb.MovePosition(rb.position + moveInput * speed * Time.fixedDeltaTime);
+    }
+
+    void OnTriggerEnter2D(Collider2D collision)
+    {
+        Debug.Log("Player Trigger dengan: " + collision.name + " | Tag: " + collision.tag);
     }
 }

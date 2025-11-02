@@ -14,7 +14,6 @@ public class CollectibleSpawner : MonoBehaviour
     [Header("Collectible Settings")]
     public List<CollectibleEntry> collectibles = new List<CollectibleEntry>();
 
-    // Di CollectibleSpawner, tambahkan method test:
     public void SpawnCollectibles(HashSet<Vector2Int> floorPositions, Vector2Int playerStartPosition)
     {
         // Convert the floor positions to a list for easier random selection

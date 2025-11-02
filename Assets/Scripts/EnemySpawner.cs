@@ -1,18 +1,25 @@
 using UnityEngine;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
 public class EnemySpawner : MonoBehaviour
 {
+    [Header("Spawner Settings")]
     public GameObject enemyPrefab;
     public int numberOfEnemies = 10;
+    public bool enableAutoRespawn = false; // checklist di inspector
+
+    [Header("Respawn Settings (aktif kalau enableAutoRespawn = true)")]
+    public float respawnInterval = 1f;
+
+    private Coroutine respawnCoroutine;
 
     public void SpawnEnemies(HashSet<Vector2Int> floorPositions, Vector2Int playerStartPosition)
     {
-        // Convert the floor positions to a list for easier random selection
         List<Vector2Int> spawnPoints = floorPositions.ToList();
 
-        // Remove the player's start tile and its immediate neighbors to create a safe zone
+        // bikin area aman di sekitar player
         for (int x = -1; x <= 1; x++)
         {
             for (int y = -1; y <= 1; y++)
@@ -21,28 +28,43 @@ public class EnemySpawner : MonoBehaviour
             }
         }
 
-        // Ensure we don't try to spawn more enemies than there are available tiles
         if (spawnPoints.Count < numberOfEnemies)
         {
-            Debug.LogWarning("Not enough valid spawn points for the requested number of enemies! Spawning as many as possible.");
+            Debug.LogWarning("Kurang banyak tile buat spawn musuh! Spawn semampunya aja.");
             numberOfEnemies = spawnPoints.Count;
         }
 
-        // Loop to spawn the specified number of enemies
         for (int i = 0; i < numberOfEnemies; i++)
         {
-            // Pick a random spawn point from the list
             int randomIndex = Random.Range(0, spawnPoints.Count);
             Vector2Int spawnPosition = spawnPoints[randomIndex];
-
-            // Convert the tile position to a world position (centered in the tile)
             Vector3 spawnWorldPosition = new Vector3(spawnPosition.x + 0.5f, spawnPosition.y + 0.5f, 0);
-
-            // Create the enemy instance
             Instantiate(enemyPrefab, spawnWorldPosition, Quaternion.identity);
-
-            // Remove this point from the list so we don't spawn another enemy on the same tile
             spawnPoints.RemoveAt(randomIndex);
+        }
+
+        // mulai respawn kalau aktif
+        if (enableAutoRespawn && respawnCoroutine == null)
+        {
+            respawnCoroutine = StartCoroutine(AutoRespawn(floorPositions, playerStartPosition));
+        }
+    }
+
+    private IEnumerator AutoRespawn(HashSet<Vector2Int> floorPositions, Vector2Int playerStartPosition)
+    {
+        while (enableAutoRespawn)
+        {
+            yield return new WaitForSeconds(respawnInterval);
+            SpawnEnemies(floorPositions, playerStartPosition);
+        }
+    }
+
+    public void StopRespawn()
+    {
+        if (respawnCoroutine != null)
+        {
+            StopCoroutine(respawnCoroutine);
+            respawnCoroutine = null;
         }
     }
 }

@@ -28,7 +28,7 @@ public class LevelGenerator : MonoBehaviour
         GenerateLevelWithRetries();
     }
 
-    void GenerateLevelWithRetries()
+    public void GenerateLevelWithRetries()
     {
         int attempts = 0;
         int maxAttempts = 100; // Prevent infinite loops
