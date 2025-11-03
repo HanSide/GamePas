@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.Tilemaps;
 using System.Collections.Generic;
 
@@ -18,30 +18,39 @@ public class LevelGenerator : MonoBehaviour
     public Vector2Int startPosition = Vector2Int.zero;
 
     [Header("Generation Settings")]
-    public int minFloorTiles = 100; // Minimum number of floor tiles required
-    public int stampSize = 1;       // How many tiles to place around the walker (1 for single tile, 2 for 3x3, etc.)
-                                    // A stampSize of 1 means a 3x3 area (current tile + 1 in each direction)
-                                    // A stampSize of 0 means just the current tile (original behavior)
+    public int minFloorTiles = 100;
+    public int stampSize = 1;
+
+    private HashSet<Vector2Int> currentFloorPositions;
 
     void Start()
     {
         GenerateLevelWithRetries();
     }
-
     public void GenerateLevelWithRetries()
     {
         int attempts = 0;
-        int maxAttempts = 100; // Prevent infinite loops
+        int maxAttempts = 100;
+
+        if (enemySpawner == null)
+        {
+            enemySpawner = FindObjectOfType<EnemySpawner>();
+        }
+        if (collectibleSpawner == null)
+        {
+            collectibleSpawner = FindObjectOfType<CollectibleSpawner>();
+        }
 
         while (attempts < maxAttempts)
         {
-            // Clear any previous generation
+
             if (floorTilemap != null)
             {
-                Destroy(floorTilemap.transform.parent.gameObject); // Destroy the old Grid instance
+
+                Destroy(floorTilemap.transform.parent.gameObject);
             }
 
-            // Instantiate a new Grid prefab
+
             GameObject gridInstance = Instantiate(gridPrefab, Vector3.zero, Quaternion.identity);
             floorTilemap = gridInstance.transform.Find("Floor").GetComponent<Tilemap>();
             wallTilemap = gridInstance.transform.Find("Wall").GetComponent<Tilemap>();
@@ -49,12 +58,13 @@ public class LevelGenerator : MonoBehaviour
             if (floorTilemap == null || wallTilemap == null)
             {
                 Debug.LogError("Could not find 'Floor' or 'Wall' Tilemaps in the instantiated Grid prefab!");
-                return; // Stop if prefab is not set up correctly
+                return;
             }
 
-            // Run generation and check conditions
             HashSet<Vector2Int> floorPositions = GenerateFloor();
             GenerateWalls(floorPositions);
+
+            currentFloorPositions = floorPositions;
 
             if (floorPositions.Count >= minFloorTiles)
             {
@@ -66,7 +76,7 @@ public class LevelGenerator : MonoBehaviour
                 }
                 else
                 {
-                    Debug.LogWarning("EnemySpawner reference is missing! No enemies will be spawned.");
+                    Debug.LogWarning("EnemySpawner reference is missing!");
                 }
 
                 if (collectibleSpawner != null)
@@ -75,20 +85,20 @@ public class LevelGenerator : MonoBehaviour
                 }
                 else
                 {
-                    Debug.LogWarning("CollectibleSpawner reference is missing! No collectibles will be spawned.");
+                    Debug.LogWarning("CollectibleSpawner reference is missing!");
                 }
 
-                return; // Level is good, stop trying
+                return; // Level berhasil
             }
             else
             {
                 Debug.Log($"Generated level too small ({floorPositions.Count} tiles). Retrying...");
                 attempts++;
             }
+
         }
         Debug.LogError("Failed to generate a level that meets criteria after max attempts.");
-    }
-
+    }   
 
     private HashSet<Vector2Int> GenerateFloor()
     {
@@ -97,7 +107,6 @@ public class LevelGenerator : MonoBehaviour
 
         for (int i = 0; i < walkSteps; i++)
         {
-            // Place tiles in a 'stamp' around the current position
             for (int x = -stampSize; x <= stampSize; x++)
             {
                 for (int y = -stampSize; y <= stampSize; y++)
@@ -114,11 +123,10 @@ public class LevelGenerator : MonoBehaviour
 
     private void GenerateWalls(HashSet<Vector2Int> floorPositions)
     {
-        // Get all floor positions that have an empty neighbor
         HashSet<Vector2Int> wallCandidatePositions = new HashSet<Vector2Int>();
         foreach (var position in floorPositions)
         {
-            foreach (var direction in GetCardinalAndDiagonalDirections()) // Check diagonals for better wall coverage
+            foreach (var direction in GetCardinalAndDiagonalDirections())
             {
                 Vector2Int neighborPos = position + direction;
                 if (!floorPositions.Contains(neighborPos))
@@ -128,7 +136,6 @@ public class LevelGenerator : MonoBehaviour
             }
         }
 
-        // Apply wall tiles to unique wall candidates
         foreach (var wallPos in wallCandidatePositions)
         {
             wallTilemap.SetTile((Vector3Int)wallPos, wallTile);
@@ -152,8 +159,23 @@ public class LevelGenerator : MonoBehaviour
     {
         return new List<Vector2Int>
         {
-            Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right, // Cardinal
-            new Vector2Int(1,1), new Vector2Int(1,-1), new Vector2Int(-1,1), new Vector2Int(-1,-1) // Diagonal
+            Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right,
+            new Vector2Int(1,1), new Vector2Int(1,-1), new Vector2Int(-1,1), new Vector2Int(-1,-1)
         };
+    }
+
+    public HashSet<Vector2Int> GetFloorPositions()
+    {
+        return currentFloorPositions;
+    }
+
+    public Vector2Int GetPlayerStartPosition()
+    {
+        return startPosition;
+    }
+
+    public Vector3 GetPlayerStartWorldPosition()
+    {
+        return new Vector3(startPosition.x + 0.5f, startPosition.y + 0.5f, 0);
     }
 }

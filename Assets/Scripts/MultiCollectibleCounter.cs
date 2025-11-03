@@ -1,6 +1,7 @@
-﻿using UnityEngine;
-using TMPro;
+﻿using System.Collections;
 using System.Collections.Generic;
+using TMPro;
+using UnityEngine;
 using UnityEngine.SceneManagement;
 
 [System.Serializable]
@@ -19,55 +20,30 @@ public class MultiCollectibleCounter : MonoBehaviour
 
     void Awake()
     {
-        if (Instance == null)
-        {
-            Instance = this;
-            DontDestroyOnLoad(gameObject); // ini bikin gak ke-destroy pas ganti scene
-
-            // biar UI bisa update otomatis tiap pindah scene
-            SceneManager.sceneLoaded += OnSceneLoaded;
-        }
-        else
+        if (Instance != null && Instance != this)
         {
             Destroy(gameObject);
             return;
         }
+
+        Instance = this;
+        DontDestroyOnLoad(gameObject);
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+        SceneManager.sceneLoaded += OnSceneLoaded;
     }
+
 
     void Start()
     {
-        ResetUI();
+        foreach (var collectible in collectibles)
+        {
+            UpdateUI(collectible);
+        }
     }
 
     void OnDestroy()
     {
         SceneManager.sceneLoaded -= OnSceneLoaded;
-    }
-
-    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
-    {
-        // cari lagi semua TMP_Text di scene baru
-        // kamu bisa pasang ulang reference ke UI-nya (misal pakai tag "CollectibleUI")
-        foreach (var collectible in collectibles)
-        {
-            if (collectible.counterText == null)
-            {
-                var ui = GameObject.Find(collectible.itemName + "Counter"); // pastikan nama GameObject-nya sama
-                if (ui != null)
-                    collectible.counterText = ui.GetComponent<TMP_Text>();
-            }
-
-            UpdateUI(collectible);
-        }
-    }
-
-    private void ResetUI()
-    {
-        foreach (var collectible in collectibles)
-        {
-            collectible.currentAmount = Mathf.Clamp(collectible.currentAmount, 0, collectible.maxAmount);
-            UpdateUI(collectible);
-        }
     }
 
     public void AddCollectible(string itemName, int amount = 1)
@@ -82,7 +58,7 @@ public class MultiCollectibleCounter : MonoBehaviour
 
             Debug.Log($"[Counter] Collected {itemName}: {collectible.currentAmount}/{collectible.maxAmount}");
 
-            if (collectible.currentAmount >= collectible.maxAmount)
+            if (collectible.currentAmount >= collectible.maxAmount) 
             {
                 OnTypeCompleted(itemName);
             }
@@ -112,7 +88,7 @@ public class MultiCollectibleCounter : MonoBehaviour
         {
             if (collectible.currentAmount < collectible.maxAmount)
                 return;
-        }
+        }   
 
         OnAllCollectiblesCompleted();
     }
@@ -120,7 +96,16 @@ public class MultiCollectibleCounter : MonoBehaviour
     private void OnAllCollectiblesCompleted()
     {
         Debug.Log("Semua collectible lengkap! Pindah ke level berikutnya...");
-        LevelManager.Instance?.GoToNextLevel();
+        Time.timeScale = 1f;
+
+        if (LevelManager.Instance != null)
+        {
+            LevelManager.Instance.GoToNextLevel();
+        }
+        else
+        {
+            Debug.LogError("LevelManager Instance is null! Cannot proceed to next level.");
+        }
     }
 
     public int GetCurrentAmount(string itemName)
@@ -134,4 +119,25 @@ public class MultiCollectibleCounter : MonoBehaviour
         var collectible = collectibles.Find(c => c.itemName == itemName);
         return collectible != null ? collectible.maxAmount : 0;
     }
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        StartCoroutine(ReassignUICounters());
+    }
+
+    private IEnumerator ReassignUICounters()
+    {
+        yield return null; 
+
+        foreach (var collectible in collectibles)
+        {
+            if (collectible.counterText == null)
+            {
+                var ui = GameObject.Find(collectible.itemName + "Counter");
+                if (ui != null)
+                    collectible.counterText = ui.GetComponent<TMP_Text>();
+            }
+            UpdateUI(collectible);
+        }
+    }
+
 }

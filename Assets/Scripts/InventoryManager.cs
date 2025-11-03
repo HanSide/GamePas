@@ -125,6 +125,12 @@ public class InventoryManager : MonoBehaviour
     {
         Time.timeScale = 1f;
         menuActivated = false;
+        if (InventoryMenu == null)
+            InventoryMenu = GameObject.Find("InventoryMenu");
+
+        if (inventorySlotsParent == null)
+            inventorySlotsParent = GameObject.Find("InventorySlotsParent")?.transform;
+
         if (InventoryMenu != null)
             InventoryMenu.SetActive(false);
     }
