@@ -16,19 +16,13 @@ public class CollectibleSpawner : MonoBehaviour
 
     public void SpawnCollectibles(HashSet<Vector2Int> floorPositions, Vector2Int playerStartPosition)
     {
-        // Convert the floor positions to a list for easier random selection
         List<Vector2Int> spawnPoints = floorPositions.ToList();
 
-        // Remove the player's start position to avoid spawning collectibles there
         spawnPoints.Remove(playerStartPosition);
 
-        // Loop through each collectible type
         foreach (var collectible in collectibles)
         {
-            // Safety check
             if (collectible.prefab == null || collectible.amountToSpawn <= 0) continue;
-
-            // Make sure there are still spawn points left
             int spawnCount = Mathf.Min(collectible.amountToSpawn, spawnPoints.Count);
 
             for (int i = 0; i < spawnCount; i++)
@@ -40,10 +34,8 @@ public class CollectibleSpawner : MonoBehaviour
 
                 Instantiate(collectible.prefab, spawnWorldPos, Quaternion.identity);
 
-                // Remove this tile so we don’t overlap spawns
                 spawnPoints.RemoveAt(randomIndex);
 
-                // If no spawn points left, break early
                 if (spawnPoints.Count == 0) break;
             }
         }

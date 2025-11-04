@@ -32,12 +32,12 @@ public class LevelManager : MonoBehaviour
 
         Instance = this;
         DontDestroyOnLoad(gameObject);
-    }
 
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
 
     void Start()
     {
-      
         if (player == null)
         {
             GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
@@ -53,16 +53,24 @@ public class LevelManager : MonoBehaviour
         }
     }
 
+    void OnDestroy()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+
     public void GoToNextLevel()
     {
         currentLevel++;
         Debug.Log($"===> Level {currentLevel} started!");
 
-
         if (spawnCoroutine != null)
         {
             StopCoroutine(spawnCoroutine);
             spawnCoroutine = null;
+        }
+        if (enemySpawner != null)
+        {
+            enemySpawner.StopRespawn();
         }
 
         if (currentLevel == 2)
@@ -75,26 +83,33 @@ public class LevelManager : MonoBehaviour
         }
     }
 
-    // LevelManager.cs
-
     private IEnumerator TransitionToLevel2()
     {
         Debug.Log("=== TRANSITIONING TO LEVEL 2 ===");
+        Time.timeScale = 1f;
+        Debug.Log($"TimeScale forced to: {Time.timeScale}");
 
         CleanupEnemies();
         CleanupCollectibles();
-
         RefreshReferences();
 
-        
         if (levelGenerator != null)
         {
             Debug.Log("Generating new level...");
             levelGenerator.walkSteps += 100;
-            levelGenerator.GenerateLevelWithRetries(); 
+            levelGenerator.GenerateLevelWithRetries();
 
             yield return new WaitForSeconds(0.3f);
 
+            floorPositions = levelGenerator.GetFloorPositions();
+            playerStartPosition = levelGenerator.GetPlayerStartPosition();
+
+            Debug.Log($"New level generated. Floor tiles: {floorPositions?.Count ?? 0}");
+        }
+        else
+        {
+            Debug.LogError("LevelGenerator is null!");
+            yield break;
         }
 
         ResetPlayerPosition();
@@ -104,35 +119,33 @@ public class LevelManager : MonoBehaviour
             enemySpawner = FindObjectOfType<EnemySpawner>();
         }
 
-        StartLevel2(); 
+        StartLevel2();
 
         Debug.Log("=== LEVEL 2 READY ===");
     }
 
     private void StartLevel2()
     {
-        if (enemySpawner != null)
+        if (enemySpawner != null && floorPositions != null)
         {
-            enemySpawner.enableAutoRespawn = true;
             enemySpawner.respawnInterval = spawnIntervalLevel2;
+            enemySpawner.maxEnemiesAlive = 20;
+            enemySpawner.SpawnEnemies(floorPositions, playerStartPosition);
+            enemySpawner.StartAutoRespawn(floorPositions, playerStartPosition);
 
-            if (spawnCoroutine == null)
-            {
-                spawnCoroutine = StartCoroutine(SpawnEnemiesContinuously());
-                Debug.Log("✓ Continuous enemy spawn started");
-            }
+            Debug.Log("✓ Level 2 enemy system started");
         }
         else
         {
-            Debug.LogWarning("EnemySpawner belum di-assign!");
+            Debug.LogWarning("Cannot start Level 2: EnemySpawner or floorPositions is null!");
         }
     }
+
     private void ResetPlayerPosition()
     {
         if (player == null)
         {
             Debug.LogError("Player reference is null! Cannot reset position.");
-
             GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
             if (playerObj != null)
             {
@@ -148,13 +161,11 @@ public class LevelManager : MonoBehaviour
         Vector3 newPosition = new Vector3(
             playerStartPosition.x + 0.5f,
             playerStartPosition.y + 0.5f,
-            player.position.z 
+            player.position.z
         );
 
         player.position = newPosition;
-
         Debug.Log($"✓ Player position reset to: {newPosition}");
-
 
         Rigidbody2D rb = player.GetComponent<Rigidbody2D>();
         if (rb != null)
@@ -163,8 +174,6 @@ public class LevelManager : MonoBehaviour
             rb.angularVelocity = 0f;
             Debug.Log("✓ Player velocity reset");
         }
-
-
         Animator animator = player.GetComponent<Animator>();
         if (animator != null)
         {
@@ -172,67 +181,57 @@ public class LevelManager : MonoBehaviour
             animator.SetFloat("MoveY", 0);
             Debug.Log("✓ Player animator reset");
         }
-
-        PlayerBehavior playerBehavior = player.GetComponent<PlayerBehavior>();
-        if (playerBehavior != null)
-        {
-            Debug.Log("✓ Player behavior reset");
-        }
-    }
-
-    private IEnumerator SpawnEnemiesContinuously()
-    {
-        while (enemySpawner != null && enemySpawner.enableAutoRespawn)
-        {
-            if (floorPositions != null && floorPositions.Count > 0)
-            {
-                enemySpawner.SpawnEnemies(floorPositions, playerStartPosition);
-                Debug.Log($"[Spawn] Enemies spawned at interval {spawnIntervalLevel2}s");
-            }
-            else
-            {
-                Debug.LogWarning("FloorPositions is null or empty!");
-            }
-
-            yield return new WaitForSeconds(spawnIntervalLevel2);
-        }
-
-        Debug.Log("Continuous spawn stopped");
-        spawnCoroutine = null;
     }
 
     private void CleanupEnemies()
     {
         GameObject[] enemies = GameObject.FindGameObjectsWithTag("Enemy");
-
         foreach (GameObject enemy in enemies)
         {
             Destroy(enemy);
         }
-
         Debug.Log($"✓ Cleaned up {enemies.Length} enemies");
     }
-    private void CleanupCollectibles() 
-    {
-        GameObject[] collectibles = GameObject.FindGameObjectsWithTag("Collectible"); 
 
+    private void CleanupCollectibles()
+    {
+        GameObject[] collectibles = GameObject.FindGameObjectsWithTag("Collectible");
         foreach (GameObject collectible in collectibles)
         {
             Destroy(collectible);
         }
-
         Debug.Log($"✓ Cleaned up {collectibles.Length} old collectibles");
     }
+
     private void RefreshReferences()
     {
+        if (player == null)
+        {
+            GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+            if (playerObj != null)
+            {
+                player = playerObj.transform;
+                Debug.Log("✓ Player reference refreshed");
+            }
+        }
 
+        if (levelGenerator == null)
+        {
+            levelGenerator = FindObjectOfType<LevelGenerator>();
+            Debug.Log("✓ LevelGenerator reference refreshed");
+        }
 
-        if (collectibleSpawner == null) 
+        if (enemySpawner == null)
+        {
+            enemySpawner = FindObjectOfType<EnemySpawner>();
+            Debug.Log("✓ EnemySpawner reference refreshed");
+        }
+
+        if (collectibleSpawner == null)
         {
             collectibleSpawner = FindObjectOfType<CollectibleSpawner>();
             Debug.Log("✓ CollectibleSpawner reference refreshed");
         }
-
 
         if (collectibleCounter == null)
         {
@@ -244,8 +243,6 @@ public class LevelManager : MonoBehaviour
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
         Time.timeScale = 1f;
+        Debug.Log($"[LevelManager] Scene loaded: {scene.name}, TimeScale: {Time.timeScale}");
     }
-    void OnEnable() => SceneManager.sceneLoaded += OnSceneLoaded;
-    void OnDisable() => SceneManager.sceneLoaded -= OnSceneLoaded;
-
 }

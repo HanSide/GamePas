@@ -15,18 +15,14 @@ public class Health : MonoBehaviour
     void Start()
     {
         currentHealth = maxHealth;
-
         if (healthBar != null)
         {
             healthBar.maxValue = maxHealth;
             healthBar.value = currentHealth;
-
             if (fillImage == null)
             {
                 fillImage = healthBar.fillRect.GetComponent<Image>();
-
             }
-
             UpdateHealthBarColor();
         }
     }
@@ -34,6 +30,7 @@ public class Health : MonoBehaviour
     public void TakeDamage(int damageAmount)
     {
         currentHealth -= damageAmount;
+        currentHealth = Mathf.Max(currentHealth, 0);
         UpdateHealthBar();
         Debug.Log(gameObject.name + " took " + damageAmount + " damage. Current health: " + currentHealth);
 
@@ -41,6 +38,18 @@ public class Health : MonoBehaviour
         {
             Die();
         }
+    }
+
+    public void Heal(int healAmount)
+    {
+        int previousHealth = currentHealth;
+        currentHealth += healAmount;
+        currentHealth = Mathf.Min(currentHealth, maxHealth); 
+
+        int actualHealed = currentHealth - previousHealth;
+
+        UpdateHealthBar();
+        Debug.Log(gameObject.name + " healed for " + actualHealed + " HP. Current health: " + currentHealth + "/" + maxHealth);
     }
 
     private void UpdateHealthBar()
@@ -57,26 +66,56 @@ public class Health : MonoBehaviour
         if (fillImage != null)
         {
             float healthPercent = (float)currentHealth / maxHealth;
+
             if (healthPercent > 0.5f)
             {
-                // Between mid and max health
-                float t = (healthPercent - 0.5f) * 2; // Normalize to 0-1
+                float t = (healthPercent - 0.5f) * 2;
                 fillImage.color = Color.Lerp(midHealthColor, maxHealthColor, t);
             }
             else
             {
-                // Between low and mid health
-                float t = healthPercent * 2; // Normalize to 0-1
+                float t = healthPercent * 2;
                 fillImage.color = Color.Lerp(lowHealthColor, midHealthColor, t);
             }
 
-            fillImage.enabled = healthPercent > 0; // Hide fill if health is zero
+            fillImage.enabled = healthPercent > 0;
         }
     }
 
     private void Die()
     {
         Debug.Log(gameObject.name + " has been defeated.");
-        Destroy(gameObject); // The simplest way to handle 
+
+        if (gameObject.CompareTag("Player"))
+        {
+            Debug.Log("GAME OVER!");
+        }
+
+        Destroy(gameObject);
+    }
+
+    public int GetCurrentHealth()
+    {
+        return currentHealth;
+    }
+
+    public int GetMaxHealth()
+    {
+        return maxHealth;
+    }
+
+    public float GetHealthPercentage()
+    {
+        return (float)currentHealth / maxHealth;
+    }
+
+    public bool IsAlive()
+    {
+        return currentHealth > 0;
+    }
+
+    public bool IsFullHealth()
+    {
+        return currentHealth >= maxHealth;
     }
 }
