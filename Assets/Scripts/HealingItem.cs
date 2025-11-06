@@ -5,7 +5,7 @@ using UnityEngine.UIElements;
 
 public class HealingItem : MonoBehaviour
 {
-    [SerializeField] private int healAmount = 2;
+    [SerializeField] private int healAmount = 10;
     void OnTriggerEnter2D(Collider2D collision)
     {
         if (collision.CompareTag("Player"))

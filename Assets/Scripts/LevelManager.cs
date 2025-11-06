@@ -1,5 +1,7 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Drawing;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -87,11 +89,14 @@ public class LevelManager : MonoBehaviour
     {
         Debug.Log("=== TRANSITIONING TO LEVEL 2 ===");
         Time.timeScale = 1f;
-        Debug.Log($"TimeScale forced to: {Time.timeScale}");
+
+        Debug.Log($"CurrentLevel at transition start: {currentLevel}");
 
         CleanupEnemies();
         CleanupCollectibles();
         RefreshReferences();
+
+        yield return null;
 
         if (levelGenerator != null)
         {
@@ -99,12 +104,12 @@ public class LevelManager : MonoBehaviour
             levelGenerator.walkSteps += 100;
             levelGenerator.GenerateLevelWithRetries();
 
-            yield return new WaitForSeconds(0.3f);
+            yield return null;
 
             floorPositions = levelGenerator.GetFloorPositions();
             playerStartPosition = levelGenerator.GetPlayerStartPosition();
 
-            Debug.Log($"New level generated. Floor tiles: {floorPositions?.Count ?? 0}");
+            Debug.Log($"New level generated. Floor tiles: {floorPositions?.Count ?? 0}, playerStart: {playerStartPosition}");
         }
         else
         {
@@ -114,15 +119,17 @@ public class LevelManager : MonoBehaviour
 
         ResetPlayerPosition();
 
-        if (enemySpawner == null)
+        RefreshReferences();
+        if (collectibleSpawner != null)
         {
-            enemySpawner = FindObjectOfType<EnemySpawner>();
+            collectibleSpawner.UpdateCachedPositions(floorPositions, playerStartPosition);
         }
 
         StartLevel2();
 
         Debug.Log("=== LEVEL 2 READY ===");
     }
+
 
     private void StartLevel2()
     {
@@ -139,6 +146,35 @@ public class LevelManager : MonoBehaviour
         {
             Debug.LogWarning("Cannot start Level 2: EnemySpawner or floorPositions is null!");
         }
+
+        if (collectibleSpawner != null && floorPositions != null)
+        {
+            Debug.Log($"Spawning initial Level 2 collectibles...");
+
+            collectibleSpawner.SpawnCollectibles(floorPositions, playerStartPosition, currentLevel);
+
+            collectibleSpawner.StartRespawn(floorPositions, playerStartPosition);
+
+            Debug.Log("✓ Level 2 collectible system started");
+        }
+        else
+        {
+            Debug.LogWarning("Cannot start collectible respawn!");
+        }
+    }
+    private void CleanupCollectibles()
+    {
+        if (collectibleSpawner != null)
+        {
+            collectibleSpawner.StopRespawn();
+        }
+
+        GameObject[] collectibles = GameObject.FindGameObjectsWithTag("Collectible");
+        foreach (GameObject collectible in collectibles)
+        {
+            Destroy(collectible);
+        }
+        Debug.Log($"✓ Cleaned up {collectibles.Length} old collectibles");
     }
 
     private void ResetPlayerPosition()
@@ -193,16 +229,6 @@ public class LevelManager : MonoBehaviour
         Debug.Log($"✓ Cleaned up {enemies.Length} enemies");
     }
 
-    private void CleanupCollectibles()
-    {
-        GameObject[] collectibles = GameObject.FindGameObjectsWithTag("Collectible");
-        foreach (GameObject collectible in collectibles)
-        {
-            Destroy(collectible);
-        }
-        Debug.Log($"✓ Cleaned up {collectibles.Length} old collectibles");
-    }
-
     private void RefreshReferences()
     {
         if (player == null)
@@ -217,25 +243,25 @@ public class LevelManager : MonoBehaviour
 
         if (levelGenerator == null)
         {
-            levelGenerator = FindObjectOfType<LevelGenerator>();
+            levelGenerator = FindAnyObjectByType<LevelGenerator>();
             Debug.Log("✓ LevelGenerator reference refreshed");
         }
 
         if (enemySpawner == null)
         {
-            enemySpawner = FindObjectOfType<EnemySpawner>();
+            enemySpawner = FindAnyObjectByType<EnemySpawner>();
             Debug.Log("✓ EnemySpawner reference refreshed");
         }
 
         if (collectibleSpawner == null)
         {
-            collectibleSpawner = FindObjectOfType<CollectibleSpawner>();
+            collectibleSpawner = FindAnyObjectByType<CollectibleSpawner>();
             Debug.Log("✓ CollectibleSpawner reference refreshed");
         }
 
         if (collectibleCounter == null)
         {
-            collectibleCounter = FindObjectOfType<MultiCollectibleCounter>();
+            collectibleCounter = FindAnyObjectByType<MultiCollectibleCounter>();
             Debug.Log("✓ MultiCollectibleCounter reference refreshed");
         }
     }

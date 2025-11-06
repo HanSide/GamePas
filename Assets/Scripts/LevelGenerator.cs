@@ -34,22 +34,19 @@ public class LevelGenerator : MonoBehaviour
 
         if (enemySpawner == null)
         {
-            enemySpawner = FindObjectOfType<EnemySpawner>();
+            enemySpawner = FindAnyObjectByType<EnemySpawner>();
         }
         if (collectibleSpawner == null)
         {
-            collectibleSpawner = FindObjectOfType<CollectibleSpawner>();
+            collectibleSpawner = FindAnyObjectByType<CollectibleSpawner>();
         }
 
         while (attempts < maxAttempts)
         {
-
             if (floorTilemap != null)
             {
-
                 Destroy(floorTilemap.transform.parent.gameObject);
             }
-
 
             GameObject gridInstance = Instantiate(gridPrefab, Vector3.zero, Quaternion.identity);
             floorTilemap = gridInstance.transform.Find("Floor").GetComponent<Tilemap>();
@@ -57,48 +54,49 @@ public class LevelGenerator : MonoBehaviour
 
             if (floorTilemap == null || wallTilemap == null)
             {
-                Debug.LogError("Could not find 'Floor' or 'Wall' Tilemaps in the instantiated Grid prefab!");
+                Debug.LogError("Could not find 'Floor' or 'Wall' Tilemaps!");
                 return;
             }
 
             HashSet<Vector2Int> floorPositions = GenerateFloor();
             GenerateWalls(floorPositions);
-
             currentFloorPositions = floorPositions;
 
             if (floorPositions.Count >= minFloorTiles)
             {
-                Debug.Log($"Level generated successfully after {attempts + 1} attempts. Floor tiles: {floorPositions.Count}");
+                Debug.Log($"Level generated successfully. Floor tiles: {floorPositions.Count}");
 
                 if (enemySpawner != null)
                 {
                     enemySpawner.SpawnEnemies(floorPositions, startPosition);
                 }
-                else
-                {
-                    Debug.LogWarning("EnemySpawner reference is missing!");
-                }
+
+                int currentLevel = LevelManager.Instance?.currentLevel ?? 1;
 
                 if (collectibleSpawner != null)
                 {
-                    collectibleSpawner.SpawnCollectibles(floorPositions, startPosition);
-                }
-                else
-                {
-                    Debug.LogWarning("CollectibleSpawner reference is missing!");
+                    if (currentLevel < 2)
+                    {
+                        collectibleSpawner.SpawnCollectibles(floorPositions, startPosition, currentLevel);
+                    }
+                    else
+                    {
+                        Debug.Log($"Skipping initial collectible spawn for level {currentLevel} (will use respawn system)");
+
+                        collectibleSpawner.UpdateCachedPositions(floorPositions, startPosition);
+                    }
                 }
 
-                return; // Level berhasil
+                return;
             }
             else
             {
-                Debug.Log($"Generated level too small ({floorPositions.Count} tiles). Retrying...");
+                Debug.Log($"Generated level too small. Retrying...");
                 attempts++;
             }
-
         }
-        Debug.LogError("Failed to generate a level that meets criteria after max attempts.");
-    }   
+        Debug.LogError("Failed to generate level.");
+    }
 
     private HashSet<Vector2Int> GenerateFloor()
     {
