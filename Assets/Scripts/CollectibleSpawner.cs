@@ -13,10 +13,7 @@ public class CollectibleSpawner : MonoBehaviour
         public List<int> spawnInLevels = new List<int> { 1 };
     }
 
-    [Header("Collectible Settings")]
     public List<CollectibleEntry> collectibles = new List<CollectibleEntry>();
-
-    [Header("Level 2 Respawn Settings")]
     public bool enableRespawn = false;
     public float respawnInterval = 5f;
     public int maxCollectiblesAlive = 10;
@@ -156,7 +153,7 @@ public class CollectibleSpawner : MonoBehaviour
         GameObject item = Instantiate(randomEntry.prefab, spawnWorldPos, Quaternion.identity);
         activeCollectibles.Add(item);
 
-        Debug.Log($"Respawned {randomEntry.prefab.name} at {spawnWorldPos}. Total: {activeCollectibles.Count}/{maxCollectiblesAlive}");
+        Debug.Log($"Respawned {randomEntry.prefab.name} at {spawnWorldPos}. Total: {activeCollectibles.Count}/{maxCollectiblesAlive}"); 
     }
 
     public void StopRespawn()

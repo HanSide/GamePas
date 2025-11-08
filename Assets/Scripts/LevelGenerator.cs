@@ -32,15 +32,6 @@ public class LevelGenerator : MonoBehaviour
         int attempts = 0;
         int maxAttempts = 100;
 
-        if (enemySpawner == null)
-        {
-            enemySpawner = FindAnyObjectByType<EnemySpawner>();
-        }
-        if (collectibleSpawner == null)
-        {
-            collectibleSpawner = FindAnyObjectByType<CollectibleSpawner>();
-        }
-
         while (attempts < maxAttempts)
         {
             if (floorTilemap != null)

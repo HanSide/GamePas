@@ -94,7 +94,6 @@ public class LevelManager : MonoBehaviour
 
         CleanupEnemies();
         CleanupCollectibles();
-        RefreshReferences();
 
         yield return null;
 
@@ -119,7 +118,6 @@ public class LevelManager : MonoBehaviour
 
         ResetPlayerPosition();
 
-        RefreshReferences();
         if (collectibleSpawner != null)
         {
             collectibleSpawner.UpdateCachedPositions(floorPositions, playerStartPosition);
@@ -227,43 +225,6 @@ public class LevelManager : MonoBehaviour
             Destroy(enemy);
         }
         Debug.Log($"✓ Cleaned up {enemies.Length} enemies");
-    }
-
-    private void RefreshReferences()
-    {
-        if (player == null)
-        {
-            GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
-            if (playerObj != null)
-            {
-                player = playerObj.transform;
-                Debug.Log("✓ Player reference refreshed");
-            }
-        }
-
-        if (levelGenerator == null)
-        {
-            levelGenerator = FindAnyObjectByType<LevelGenerator>();
-            Debug.Log("✓ LevelGenerator reference refreshed");
-        }
-
-        if (enemySpawner == null)
-        {
-            enemySpawner = FindAnyObjectByType<EnemySpawner>();
-            Debug.Log("✓ EnemySpawner reference refreshed");
-        }
-
-        if (collectibleSpawner == null)
-        {
-            collectibleSpawner = FindAnyObjectByType<CollectibleSpawner>();
-            Debug.Log("✓ CollectibleSpawner reference refreshed");
-        }
-
-        if (collectibleCounter == null)
-        {
-            collectibleCounter = FindAnyObjectByType<MultiCollectibleCounter>();
-            Debug.Log("✓ MultiCollectibleCounter reference refreshed");
-        }
     }
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
