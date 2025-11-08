@@ -4,6 +4,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
+using JetBrains.Annotations;
 
 public class InventoryManager : MonoBehaviour
 {
@@ -22,7 +23,7 @@ public class InventoryManager : MonoBehaviour
 
     void Awake()
     {
-
+        itemDescImage.enabled = false;
         if (Instance == null)
         {
             Instance = this;
@@ -60,6 +61,7 @@ public class InventoryManager : MonoBehaviour
 
     public void AddItem(string itemName, int quantity, Sprite itemSprite, string itemDescription)
     {
+
         foreach (var slot in itemSlots)
         {
             if (slot.itemName == itemName && slot.isFull)

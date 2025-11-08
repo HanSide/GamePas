@@ -1,171 +1,135 @@
-﻿using UnityEngine;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
+using UnityEngine;
 
 public class CollectibleSpawner : MonoBehaviour
 {
     [System.Serializable]
     public class CollectibleEntry
     {
+        public string name;
         public GameObject prefab;
-        public int amountToSpawn;
-        public List<int> spawnInLevels = new List<int> { 1 };
+        public int amountToSpawn = 3;
+        public bool unlimitedSpawn = false;
+        public int maxCollectiblesAlive = 10;
+        public List<int> spawnInLevels;
     }
 
+    [Header("Collectibles List")]
     public List<CollectibleEntry> collectibles = new List<CollectibleEntry>();
-    public bool enableRespawn = false;
-    public float respawnInterval = 5f;
-    public int maxCollectiblesAlive = 10;
+
+    [Header("Respawn Settings")]
+    public float respawnInterval = 2f;
 
     private List<GameObject> activeCollectibles = new List<GameObject>();
-    private HashSet<Vector2Int> cachedFloorPositions;
-    private Vector2Int cachedPlayerStartPosition;
-    private int currentLevel = 1;
+    private List<Vector2Int> cachedSpawnTiles = new List<Vector2Int>();
+    private Vector2Int cachedPlayerStart;
+    private Coroutine respawnRoutine;
 
-    public void SpawnCollectibles(HashSet<Vector2Int> floorPositions, Vector2Int playerStartPosition, int level = 1)
+    public void SpawnCollectibles(HashSet<Vector2Int> floorTiles, Vector2Int playerStart, int level)
     {
-        currentLevel = level;
-        cachedFloorPositions = floorPositions;
-        cachedPlayerStartPosition = playerStartPosition;
-
-        List<Vector2Int> spawnPoints = floorPositions.ToList();
-
-        for (int x = -1; x <= 1; x++)
-        {
-            for (int y = -1; y <= 1; y++)
-            {
-                spawnPoints.Remove(playerStartPosition + new Vector2Int(x, y));
-            }
-        }
+        List<Vector2Int> spawnPoints = new List<Vector2Int>(floorTiles);
+        spawnPoints.Remove(playerStart);
 
         foreach (var collectible in collectibles)
         {
-            if (!collectible.spawnInLevels.Contains(level))
-            {
-                Debug.Log($"Skipping {collectible.prefab?.name} (not for level {level})");
-                continue;
-            }
-
-            if (collectible.prefab == null || collectible.amountToSpawn <= 0) continue;
-
+            if (!collectible.spawnInLevels.Contains(level)) continue;
+            if (collectible.prefab == null) continue;
             int spawnCount = Mathf.Min(collectible.amountToSpawn, spawnPoints.Count);
 
             for (int i = 0; i < spawnCount; i++)
             {
                 if (spawnPoints.Count == 0) break;
 
-                int randomIndex = Random.Range(0, spawnPoints.Count);
-                Vector2Int spawnTile = spawnPoints[randomIndex];
-                Vector3 spawnWorldPos = new Vector3(spawnTile.x + 0.5f, spawnTile.y + 0.5f, 0);
+                int index = Random.Range(0, spawnPoints.Count);
+                Vector2Int tile = spawnPoints[index];
+                Vector3 worldPos = new Vector3(tile.x + 0.5f, tile.y + 0.5f, 0);
 
-                GameObject item = Instantiate(collectible.prefab, spawnWorldPos, Quaternion.identity);
+                GameObject item = Instantiate(collectible.prefab, worldPos, Quaternion.identity);
                 activeCollectibles.Add(item);
 
-                spawnPoints.RemoveAt(randomIndex);
+                spawnPoints.RemoveAt(index);
             }
 
-            Debug.Log($"Spawned {spawnCount} {collectible.prefab.name} for level {level}");
+            Debug.Log($"Spawned {spawnCount} of {collectible.prefab.name} (Level {level})");
         }
     }
-
-    public void UpdateCachedPositions(HashSet<Vector2Int> floorPositions, Vector2Int playerStartPosition)
+    public void UpdateCachedPositions(HashSet<Vector2Int> floorTiles, Vector2Int playerStart)
     {
-        cachedFloorPositions = floorPositions;
-        cachedPlayerStartPosition = playerStartPosition;
-        Debug.Log($"✓ Cached positions updated: {floorPositions.Count} tiles, player at {playerStartPosition}");
+        cachedSpawnTiles = new List<Vector2Int>(floorTiles);
+        cachedSpawnTiles.Remove(playerStart);
+        cachedPlayerStart = playerStart;
     }
 
-    public void StartRespawn(HashSet<Vector2Int> floorPositions, Vector2Int playerStartPosition)
+    public void StartRespawn(HashSet<Vector2Int> floorTiles, Vector2Int playerStart)
     {
-        cachedFloorPositions = floorPositions;
-        cachedPlayerStartPosition = playerStartPosition;
-        enableRespawn = true;
+        UpdateCachedPositions(floorTiles, playerStart);
 
-        StartCoroutine(RespawnRoutine());
-        Debug.Log($"✓ Collectible respawn started at player position: {playerStartPosition}");
-    }
+        if (respawnRoutine != null)
+            StopCoroutine(respawnRoutine);
 
-    private IEnumerator RespawnRoutine()
-    {
-        while (enableRespawn)
-        {
-            yield return new WaitForSeconds(respawnInterval);
-
-            activeCollectibles.RemoveAll(item => item == null);
-
-            if (activeCollectibles.Count < maxCollectiblesAlive)
-            {
-                SpawnRandomCollectible();
-            }
-        }
-    }
-
-    private void SpawnRandomCollectible()
-    {
-        if (cachedFloorPositions == null || cachedFloorPositions.Count == 0)
-        {
-            Debug.LogWarning("Cached floor positions is null or empty!");
-            return;
-        }
-
-        GameObject player = GameObject.FindGameObjectWithTag("Player");
-        Vector2Int currentPlayerPos = cachedPlayerStartPosition; 
-
-        if (player != null)
-        {
-            currentPlayerPos = Vector2Int.RoundToInt(player.transform.position);
-        }
-
-        List<CollectibleEntry> validCollectibles = collectibles.FindAll(c =>
-            c.prefab != null &&
-            c.spawnInLevels.Contains(currentLevel)
-        );
-
-        if (validCollectibles.Count == 0)
-        {
-            Debug.LogWarning("No valid collectibles to spawn!");
-            return;
-        }
-
-        CollectibleEntry randomEntry = validCollectibles[Random.Range(0, validCollectibles.Count)];
-
-        List<Vector2Int> spawnPoints = cachedFloorPositions.ToList();
-
-        for (int x = -2; x <= 2; x++)
-        {
-            for (int y = -2; y <= 2; y++)
-            {
-                spawnPoints.Remove(currentPlayerPos + new Vector2Int(x, y));
-            }
-        }
-
-        if (spawnPoints.Count == 0)
-        {
-            Debug.LogWarning("No valid spawn points after removing safe zone!");
-            return;
-        }
-
-        int randomIndex = Random.Range(0, spawnPoints.Count);
-        Vector2Int spawnTile = spawnPoints[randomIndex];
-        Vector3 spawnWorldPos = new Vector3(spawnTile.x + 0.5f, spawnTile.y + 0.5f, 0);
-
-        GameObject item = Instantiate(randomEntry.prefab, spawnWorldPos, Quaternion.identity);
-        activeCollectibles.Add(item);
-
-        Debug.Log($"Respawned {randomEntry.prefab.name} at {spawnWorldPos}. Total: {activeCollectibles.Count}/{maxCollectiblesAlive}"); 
+        respawnRoutine = StartCoroutine(RespawnLoop());
     }
 
     public void StopRespawn()
     {
-        enableRespawn = false;
-        StopAllCoroutines();
-        Debug.Log("✓ Collectible respawn stopped");
+        if (respawnRoutine != null)
+            StopCoroutine(respawnRoutine);
     }
 
-    public int GetActiveCollectiblesCount()
+    private IEnumerator RespawnLoop()
     {
-        activeCollectibles.RemoveAll(item => item == null);
-        return activeCollectibles.Count;
+        while (true)
+        {
+            yield return new WaitForSeconds(respawnInterval);
+            TryRespawn();
+        }
+    }
+
+    private void TryRespawn()
+    {
+        if (cachedSpawnTiles == null || cachedSpawnTiles.Count == 0) return;
+
+        List<CollectibleEntry> valid = new List<CollectibleEntry>();
+
+        foreach (var c in collectibles)
+        {
+            if (c.unlimitedSpawn)
+            {
+                valid.Add(c);
+                continue;
+            }
+
+            int alive = CountAliveOfType(c.prefab.name);
+            if (alive < c.maxCollectiblesAlive)
+                valid.Add(c);
+        }
+
+        if (valid.Count == 0) return;
+
+        CollectibleEntry selected = valid[Random.Range(0, valid.Count)];
+
+        if (!selected.unlimitedSpawn)
+        {
+            int alive = CountAliveOfType(selected.prefab.name);
+            if (alive >= selected.maxCollectiblesAlive) return;
+        }
+
+        Vector2Int tile = cachedSpawnTiles[Random.Range(0, cachedSpawnTiles.Count)];
+        Vector3 pos = new Vector3(  tile.x + 0.5f, tile.y + 0.5f, 0);
+
+        GameObject item = Instantiate(selected.prefab, pos, Quaternion.identity);
+        activeCollectibles.Add(item);
+    }
+
+    private int CountAliveOfType(string name)
+    {
+        int count = 0;
+        foreach (var obj in activeCollectibles)
+        {
+            if (obj != null && obj.name.Contains(name))
+                count++;
+        }
+        return count;
     }
 }
