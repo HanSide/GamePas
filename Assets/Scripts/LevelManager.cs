@@ -79,10 +79,6 @@ public class LevelManager : MonoBehaviour
         {
             StartCoroutine(TransitionToLevel2());
         }
-        else
-        {
-            Debug.Log($"Level {currentLevel} belum punya rule khusus.");
-        }
     }
 
     private IEnumerator TransitionToLevel2()

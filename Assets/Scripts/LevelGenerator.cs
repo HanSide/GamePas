@@ -162,9 +162,4 @@ public class LevelGenerator : MonoBehaviour
     {
         return startPosition;
     }
-
-    public Vector3 GetPlayerStartWorldPosition()
-    {
-        return new Vector3(startPosition.x + 0.5f, startPosition.y + 0.5f, 0);
-    }
 }

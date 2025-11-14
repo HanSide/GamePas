@@ -79,7 +79,7 @@ public class MultiCollectibleCounter : MonoBehaviour
 
     private void OnTypeCompleted(string itemName)
     {
-        Debug.Log($"🎉 Semua {itemName} terkumpul!");
+        Debug.Log($"Collectible {itemName} Completed");
     }
 
     private void CheckAllCompleted()
@@ -95,7 +95,7 @@ public class MultiCollectibleCounter : MonoBehaviour
 
     private void OnAllCollectiblesCompleted()
     {
-        Debug.Log("Semua collectible lengkap! Pindah ke level berikutnya...");
+        Debug.Log("All CollectiblesCompleted");
         Time.timeScale = 1f;
 
         if (LevelManager.Instance != null)
@@ -106,18 +106,6 @@ public class MultiCollectibleCounter : MonoBehaviour
         {
             Debug.LogError("LevelManager Instance is null! Cannot proceed to next level.");
         }
-    }
-
-    public int GetCurrentAmount(string itemName)
-    {
-        var collectible = collectibles.Find(c => c.itemName == itemName);
-        return collectible != null ? collectible.currentAmount : 0;
-    }
-
-    public int GetMaxAmount(string itemName)
-    {
-        var collectible = collectibles.Find(c => c.itemName == itemName);
-        return collectible != null ? collectible.maxAmount : 0;
     }
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {

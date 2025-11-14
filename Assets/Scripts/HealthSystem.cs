@@ -85,35 +85,8 @@ public class Health : MonoBehaviour
     private void Die()
     {
         Debug.Log(gameObject.name + " has been defeated.");
-
-        if (gameObject.CompareTag("Player"))
-        {
-            Debug.Log("GAME OVER!");
-        }
-
         Destroy(gameObject);
     }
-
-    public int GetCurrentHealth()
-    {
-        return currentHealth;
-    }
-
-    public int GetMaxHealth()
-    {
-        return maxHealth;
-    }
-
-    public float GetHealthPercentage()
-    {
-        return (float)currentHealth / maxHealth;
-    }
-
-    public bool IsAlive()
-    {
-        return currentHealth > 0;
-    }
-
     public bool IsFullHealth()
     {
         return currentHealth >= maxHealth;
