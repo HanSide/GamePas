@@ -125,7 +125,6 @@ public class InventoryManager : MonoBehaviour
     }
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-
         Time.timeScale = 1f;
         menuActivated = false;
         if (InventoryMenu == null)
@@ -137,4 +136,9 @@ public class InventoryManager : MonoBehaviour
         if (InventoryMenu != null)
             InventoryMenu.SetActive(false);
     }
+    public void ResetInventory()
+    {
+        itemSlots.Clear();
+    }
+
 }

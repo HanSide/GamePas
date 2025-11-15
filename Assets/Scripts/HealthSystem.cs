@@ -1,6 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
-
+using UnityEngine.SceneManagement;
 public class Health : MonoBehaviour
 {
     [SerializeField] private int maxHealth = 10;
@@ -86,6 +86,8 @@ public class Health : MonoBehaviour
     {
         Debug.Log(gameObject.name + " has been defeated.");
         Destroy(gameObject);
+        SceneManager.LoadScene(2);
+
     }
     public bool IsFullHealth()
     {

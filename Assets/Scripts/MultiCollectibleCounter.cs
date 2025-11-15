@@ -15,7 +15,7 @@ public class CollectibleType
 
 public class MultiCollectibleCounter : MonoBehaviour
 {
-    [SerializeField] private List<CollectibleType> collectibles = new List<CollectibleType>();
+    [SerializeField] public List<CollectibleType> collectibles = new List<CollectibleType>();
     public static MultiCollectibleCounter Instance { get; private set; }
 
     void Awake()
@@ -71,7 +71,7 @@ public class MultiCollectibleCounter : MonoBehaviour
         }
     }
 
-    private void UpdateUI(CollectibleType collectible)
+    public void UpdateUI(CollectibleType collectible)
     {
         if (collectible.counterText != null)
             collectible.counterText.text = $"{collectible.currentAmount}/{collectible.maxAmount}";
