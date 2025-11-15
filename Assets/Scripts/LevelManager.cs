@@ -20,7 +20,7 @@ public class LevelManager : MonoBehaviour
 
     [Header("Level Settings")]
     public int currentLevel = 1;
-    public float spawnIntervalLevel2 = 1f;
+    public float spawnIntervalLevel2 = 0.1f;
 
     private Coroutine spawnCoroutine;
 
@@ -33,7 +33,6 @@ public class LevelManager : MonoBehaviour
         }
 
         Instance = this;
-        DontDestroyOnLoad(gameObject);
 
         SceneManager.sceneLoaded += OnSceneLoaded;
     }
@@ -130,11 +129,13 @@ public class LevelManager : MonoBehaviour
         if (enemySpawner != null && floorPositions != null)
         {
             enemySpawner.respawnInterval = spawnIntervalLevel2;
-            enemySpawner.maxEnemiesAlive = 20;
+                                                                
+            enemySpawner.numberOfEnemies = 5;
+
             enemySpawner.SpawnEnemies(floorPositions, playerStartPosition);
             enemySpawner.StartAutoRespawn(floorPositions, playerStartPosition);
 
-            Debug.Log("✓ Level 2 enemy system started");
+            Debug.Log("✓ Level 2 UNLIMITED enemy respawn started");
         }
         else
         {
@@ -144,17 +145,34 @@ public class LevelManager : MonoBehaviour
         if (collectibleSpawner != null && floorPositions != null)
         {
             Debug.Log($"Spawning initial Level 2 collectibles...");
-
             collectibleSpawner.SpawnCollectibles(floorPositions, playerStartPosition, currentLevel);
-
             collectibleSpawner.StartRespawn(floorPositions, playerStartPosition);
-
             Debug.Log("✓ Level 2 collectible system started");
         }
         else
         {
             Debug.LogWarning("Cannot start collectible respawn!");
         }
+    }
+
+    private void CleanupEnemies()
+    {
+        if (enemySpawner != null)
+        {
+            enemySpawner.StopRespawn();
+        }
+
+        GameObject[] enemies = GameObject.FindGameObjectsWithTag("Enemy");
+        foreach (GameObject enemy in enemies)
+        {
+            Destroy(enemy);
+        }
+        if (enemySpawner != null)
+        {
+            enemySpawner.ClearActiveEnemies();
+        }
+
+        Debug.Log($"✓ Cleaned up {enemies.Length} enemies");
     }
     private void CleanupCollectibles()
     {
@@ -212,17 +230,6 @@ public class LevelManager : MonoBehaviour
             Debug.Log("✓ Player animator reset");
         }
     }
-
-    private void CleanupEnemies()
-    {
-        GameObject[] enemies = GameObject.FindGameObjectsWithTag("Enemy");
-        foreach (GameObject enemy in enemies)
-        {
-            Destroy(enemy);
-        }
-        Debug.Log($"✓ Cleaned up {enemies.Length} enemies");
-    }
-
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
         Time.timeScale = 1f;

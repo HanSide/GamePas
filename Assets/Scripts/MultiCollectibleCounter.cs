@@ -27,7 +27,6 @@ public class MultiCollectibleCounter : MonoBehaviour
         }
 
         Instance = this;
-        DontDestroyOnLoad(gameObject);
         SceneManager.sceneLoaded -= OnSceneLoaded;
         SceneManager.sceneLoaded += OnSceneLoaded;
     }

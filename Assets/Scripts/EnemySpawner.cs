@@ -5,21 +5,22 @@ using System.Linq;
 
 public class EnemySpawner : MonoBehaviour
 {
-    [Header("Spawner Settings")]
     public GameObject enemyPrefab;
     public int numberOfEnemies = 10;
-
-    [Header("Auto Respawn (Level 2)")]
     public bool enableAutoRespawn = false;
-    public float respawnInterval = 1f;
-    public int maxEnemiesAlive = 20; 
+    public float respawnInterval = 0.1f;
 
     private Coroutine respawnCoroutine;
     private List<GameObject> activeEnemies = new List<GameObject>();
+    private HashSet<Vector2Int> cachedFloorPositions;
+    private Vector2Int cachedPlayerStartPosition;
 
- 
     public void SpawnEnemies(HashSet<Vector2Int> floorPositions, Vector2Int playerStartPosition)
     {
+        activeEnemies.Clear();
+        cachedFloorPositions = new HashSet<Vector2Int>(floorPositions);
+        cachedPlayerStartPosition = playerStartPosition;
+
         List<Vector2Int> spawnPoints = floorPositions.ToList();
 
         for (int x = -2; x <= 2; x++)
@@ -32,7 +33,6 @@ public class EnemySpawner : MonoBehaviour
 
         if (spawnPoints.Count < numberOfEnemies)
         {
-            Debug.LogWarning($"Not enough spawn points! Spawning {spawnPoints.Count} instead of {numberOfEnemies}");
             numberOfEnemies = spawnPoints.Count;
         }
 
@@ -49,20 +49,12 @@ public class EnemySpawner : MonoBehaviour
 
             spawnPoints.RemoveAt(randomIndex);
         }
-
-        Debug.Log($"Spawned {numberOfEnemies} enemies");
     }
+
     public void SpawnSingleEnemy(HashSet<Vector2Int> floorPositions, Vector2Int playerStartPosition)
     {
-        activeEnemies.RemoveAll(e => e == null);
-
-        if (activeEnemies.Count >= maxEnemiesAlive)
-        {
-            Debug.Log($"Max enemies reached ({maxEnemiesAlive}). Skipping spawn.");
-            return;
-        }
-
         List<Vector2Int> spawnPoints = floorPositions.ToList();
+
         for (int x = -2; x <= 2; x++)
         {
             for (int y = -2; y <= 2; y++)
@@ -73,7 +65,6 @@ public class EnemySpawner : MonoBehaviour
 
         if (spawnPoints.Count == 0)
         {
-            Debug.LogWarning("No valid spawn points!");
             return;
         }
 
@@ -83,28 +74,40 @@ public class EnemySpawner : MonoBehaviour
 
         GameObject enemy = Instantiate(enemyPrefab, spawnWorldPosition, Quaternion.identity);
         activeEnemies.Add(enemy);
-
-        Debug.Log($"Spawned 1 enemy. Total alive: {activeEnemies.Count}/{maxEnemiesAlive}");
     }
+
     public void StartAutoRespawn(HashSet<Vector2Int> floorPositions, Vector2Int playerStartPosition)
     {
         if (respawnCoroutine != null)
         {
             StopCoroutine(respawnCoroutine);
+            respawnCoroutine = null;
         }
 
+        cachedFloorPositions = new HashSet<Vector2Int>(floorPositions);
+        cachedPlayerStartPosition = playerStartPosition;
+
         enableAutoRespawn = true;
-        respawnCoroutine = StartCoroutine(AutoRespawnRoutine(floorPositions, playerStartPosition));
-        Debug.Log("✓ Auto respawn started");
+        respawnCoroutine = StartCoroutine(AutoRespawnRoutine());
     }
 
-    private IEnumerator AutoRespawnRoutine(HashSet<Vector2Int> floorPositions, Vector2Int playerStartPosition)
+    private IEnumerator AutoRespawnRoutine()
     {
+        int spawnCount = 0;
+
         while (enableAutoRespawn)
         {
             yield return new WaitForSeconds(respawnInterval);
 
-            SpawnSingleEnemy(floorPositions, playerStartPosition);
+            if (cachedFloorPositions == null || cachedFloorPositions.Count == 0)
+            {
+                break;
+            }
+            int beforeClean = activeEnemies.Count;
+            activeEnemies.RemoveAll(e => e == null);
+            int afterClean = activeEnemies.Count;
+            spawnCount++;
+            SpawnSingleEnemy(cachedFloorPositions, cachedPlayerStartPosition);
         }
     }
 
@@ -117,8 +120,11 @@ public class EnemySpawner : MonoBehaviour
             StopCoroutine(respawnCoroutine);
             respawnCoroutine = null;
         }
+    }
 
-        Debug.Log("✓ Auto respawn stopped");
+    public void ClearActiveEnemies()
+    {
+        activeEnemies.Clear();
     }
 
     public int GetAliveEnemiesCount()

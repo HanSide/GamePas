@@ -8,8 +8,8 @@ public class PlayerBehavior : MonoBehaviour
     private Vector2 moveInput;
     private Animator animator;
     private SpriteRenderer spriteRenderer;
-    private Vector2 lastMove;
 
+    public Vector2 lastMove { get; private set; } = Vector2.down;
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();

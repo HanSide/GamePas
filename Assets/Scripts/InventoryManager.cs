@@ -16,26 +16,56 @@ public class InventoryManager : MonoBehaviour
     public TextMeshProUGUI itemDescNameText;
     public TextMeshProUGUI itemDescText;
     public Image itemDescImage;
-
     private List<ItemSlot> itemSlots = new List<ItemSlot>();
+
+    // Static data untuk persist antar scene
+    private static List<InventoryItemData> persistentInventoryData = new List<InventoryItemData>();
 
     public static InventoryManager Instance { get; private set; }
 
+    [System.Serializable]
+    public class InventoryItemData
+    {
+        public string itemName;
+        public int quantity;
+        public Sprite itemSprite;
+        public string itemDescription;
+
+        public InventoryItemData(string name, int qty, Sprite sprite, string desc)
+        {
+            itemName = name;
+            quantity = qty;
+            itemSprite = sprite;
+            itemDescription = desc;
+        }
+    }
+
     void Awake()
     {
-        itemDescImage.enabled = false;
-        if (Instance == null)
+        if (Instance != null && Instance != this)
         {
-            Instance = this;
-            DontDestroyOnLoad(gameObject);
-        }
-        else
-        {
+            Debug.Log("[InventoryManager] Duplicate found, destroying NEW instance");
             Destroy(gameObject);
             return;
         }
 
+        Instance = this;
+
+        if (itemDescImage != null)
+            itemDescImage.enabled = false;
+
         OpenInventory = new InputAction("OpenInventory", binding: "<Keyboard>/I");
+
+        Debug.Log($"[InventoryManager] Instance created. Persistent data: {persistentInventoryData.Count}");
+    }
+
+    void Start()
+    {
+        if (persistentInventoryData.Count > 0)
+        {
+            Debug.Log($"[InventoryManager] Loading {persistentInventoryData.Count} items");
+            LoadInventoryData();
+        }
     }
 
     void OnEnable()
@@ -52,8 +82,19 @@ public class InventoryManager : MonoBehaviour
         SceneManager.sceneLoaded -= OnSceneLoaded;
     }
 
+    void OnDestroy()
+    {
+        if (Instance == this)
+        {
+            SaveInventoryData();
+            Instance = null;
+        }
+    }
+
     private void ToggleInventory(InputAction.CallbackContext context)
     {
+        if (InventoryMenu == null) return;
+
         menuActivated = !menuActivated;
         InventoryMenu.SetActive(menuActivated);
         Time.timeScale = menuActivated ? 0f : 1f;
@@ -61,17 +102,21 @@ public class InventoryManager : MonoBehaviour
 
     public void AddItem(string itemName, int quantity, Sprite itemSprite, string itemDescription)
     {
+        if (inventorySlotsParent == null)
+        {
+            Debug.LogError("[InventoryManager] inventorySlotsParent is null!");
+            return;
+        }
 
         foreach (var slot in itemSlots)
         {
-            if (slot.itemName == itemName && slot.isFull)
+            if (slot != null && slot.itemName == itemName && slot.isFull)
             {
                 slot.AddItem(itemName, quantity, itemSprite, itemDescription);
-                Debug.Log($"Stacked {quantity} of {itemName} to inventory. Total: {slot.quantity}");
+                Debug.Log($"[InventoryManager] Stacked {quantity} of {itemName}. Total: {slot.quantity}");
                 return;
             }
         }
-
 
         GameObject newSlotObj = Instantiate(itemSlotPrefab, inventorySlotsParent);
         ItemSlot newSlot = newSlotObj.GetComponent<ItemSlot>();
@@ -80,11 +125,11 @@ public class InventoryManager : MonoBehaviour
         {
             newSlot.AddItem(itemName, quantity, itemSprite, itemDescription);
             itemSlots.Add(newSlot);
-            Debug.Log($"Created new slot and added {quantity} of {itemName} to inventory.");
+            Debug.Log($"[InventoryManager] Created new slot: {itemName} x{quantity}");
         }
         else
         {
-            Debug.LogError("ItemSlot component not found on prefab!");
+            Debug.LogError("[InventoryManager] ItemSlot component not found!");
             Destroy(newSlotObj);
         }
     }
@@ -99,46 +144,91 @@ public class InventoryManager : MonoBehaviour
             itemDescText.text = "";
     }
 
-
     public int GetItemQuantity(string itemName)
     {
         int total = 0;
         foreach (var slot in itemSlots)
         {
-            if (slot.itemName == itemName && slot.isFull)
+            if (slot != null && slot.itemName == itemName && slot.isFull)
             {
                 total += slot.quantity;
             }
         }
         return total;
     }
+
     public bool HasItem(string itemName)
     {
         foreach (var slot in itemSlots)
         {
-            if (slot.itemName == itemName && slot.isFull && slot.quantity > 0)
+            if (slot != null && slot.itemName == itemName && slot.isFull && slot.quantity > 0)
             {
                 return true;
             }
         }
         return false;
     }
+
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
+        Debug.Log($"[InventoryManager] Scene loaded: {scene.name}");
+
         Time.timeScale = 1f;
         menuActivated = false;
-        if (InventoryMenu == null)
-            InventoryMenu = GameObject.Find("InventoryMenu");
-
-        if (inventorySlotsParent == null)
-            inventorySlotsParent = GameObject.Find("InventorySlotsParent")?.transform;
 
         if (InventoryMenu != null)
+        {
             InventoryMenu.SetActive(false);
-    }
-    public void ResetInventory()
-    {
-        itemSlots.Clear();
+        }
     }
 
+    private void SaveInventoryData()
+    {
+        persistentInventoryData.Clear();
+
+        foreach (var slot in itemSlots)
+        {
+            if (slot != null && slot.isFull && slot.quantity > 0)
+            {
+                persistentInventoryData.Add(new InventoryItemData(
+                    slot.itemName,
+                    slot.quantity,
+                    slot.itemSprite,
+                    slot.itemDesc
+                ));
+            }
+        }
+
+        Debug.Log($"[InventoryManager] Saved {persistentInventoryData.Count} items");
+    }
+
+    private void LoadInventoryData()
+    {
+        foreach (var data in persistentInventoryData)
+        {
+            AddItem(data.itemName, data.quantity, data.itemSprite, data.itemDescription);
+        }
+
+        Debug.Log($"[InventoryManager] Loaded {persistentInventoryData.Count} items");
+    }
+
+    public void ResetInventory()
+    {
+        Debug.Log($"[InventoryManager] Resetting inventory. Slots: {itemSlots.Count}");
+
+        foreach (var slot in itemSlots)
+        {
+            if (slot != null && slot.gameObject != null)
+            {
+                Destroy(slot.gameObject);
+            }
+        }
+
+        itemSlots.Clear();
+        persistentInventoryData.Clear();
+
+        ClearDescriptionPanel();
+
+        Debug.Log("[InventoryManager] Inventory reset complete");
+    }
 }

@@ -1,4 +1,6 @@
 using UnityEngine;
+using System.Collections;
+using System.Collections.Generic;
 
 public class CollectibleItem : MonoBehaviour
 {
@@ -11,8 +13,14 @@ public class CollectibleItem : MonoBehaviour
 
     void Start()
     {
-        inventoryManager = InventoryManager.Instance;
+        StartCoroutine(FindInventoryManager());
+    }
 
+    private IEnumerator FindInventoryManager()
+    {
+        yield return null;
+
+        inventoryManager = InventoryManager.Instance;
         if (inventoryManager == null)
         {
             Debug.LogError("InventoryManager.Instance is null!");
@@ -23,23 +31,20 @@ public class CollectibleItem : MonoBehaviour
     {
         if (collision.CompareTag("Player"))
         {
-            if (inventoryManager != null)
+            if (InventoryManager.Instance != null)
             {
-                inventoryManager.AddItem(itemName, quantity, itemSprite, itemDescription);
+                InventoryManager.Instance.AddItem(itemName, quantity, itemSprite, itemDescription);
             }
             else
             {
-                Debug.LogError("InventoryManager is null!");
+                Debug.LogError("InventoryManager.Instance is null when collecting!");
             }
 
             if (MultiCollectibleCounter.Instance != null)
             {
                 MultiCollectibleCounter.Instance.AddCollectible(itemName, quantity);
             }
-            else
-            {
-                Debug.LogWarning("MultiCollectibleCounter.Instance is null! Counter UI won't update.");
-            }
+
             Destroy(gameObject);
         }
     }
