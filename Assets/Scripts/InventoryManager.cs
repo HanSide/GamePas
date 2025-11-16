@@ -44,7 +44,6 @@ public class InventoryManager : MonoBehaviour
     {
         if (Instance != null && Instance != this)
         {
-            Debug.Log("[InventoryManager] Duplicate found, destroying NEW instance");
             Destroy(gameObject);
             return;
         }
@@ -54,16 +53,14 @@ public class InventoryManager : MonoBehaviour
         if (itemDescImage != null)
             itemDescImage.enabled = false;
 
-        OpenInventory = new InputAction("OpenInventory", binding: "<Keyboard>/I");
+        OpenInventory = new InputAction("OpenInventory", binding: "<Keyboard>/E");
 
-        Debug.Log($"[InventoryManager] Instance created. Persistent data: {persistentInventoryData.Count}");
     }
 
     void Start()
     {
         if (persistentInventoryData.Count > 0)
         {
-            Debug.Log($"[InventoryManager] Loading {persistentInventoryData.Count} items");
             LoadInventoryData();
         }
     }
@@ -113,7 +110,6 @@ public class InventoryManager : MonoBehaviour
             if (slot != null && slot.itemName == itemName && slot.isFull)
             {
                 slot.AddItem(itemName, quantity, itemSprite, itemDescription);
-                Debug.Log($"[InventoryManager] Stacked {quantity} of {itemName}. Total: {slot.quantity}");
                 return;
             }
         }
@@ -125,11 +121,9 @@ public class InventoryManager : MonoBehaviour
         {
             newSlot.AddItem(itemName, quantity, itemSprite, itemDescription);
             itemSlots.Add(newSlot);
-            Debug.Log($"[InventoryManager] Created new slot: {itemName} x{quantity}");
         }
         else
         {
-            Debug.LogError("[InventoryManager] ItemSlot component not found!");
             Destroy(newSlotObj);
         }
     }
@@ -171,8 +165,6 @@ public class InventoryManager : MonoBehaviour
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        Debug.Log($"[InventoryManager] Scene loaded: {scene.name}");
-
         Time.timeScale = 1f;
         menuActivated = false;
 
@@ -198,8 +190,6 @@ public class InventoryManager : MonoBehaviour
                 ));
             }
         }
-
-        Debug.Log($"[InventoryManager] Saved {persistentInventoryData.Count} items");
     }
 
     private void LoadInventoryData()
@@ -208,14 +198,10 @@ public class InventoryManager : MonoBehaviour
         {
             AddItem(data.itemName, data.quantity, data.itemSprite, data.itemDescription);
         }
-
-        Debug.Log($"[InventoryManager] Loaded {persistentInventoryData.Count} items");
     }
 
     public void ResetInventory()
     {
-        Debug.Log($"[InventoryManager] Resetting inventory. Slots: {itemSlots.Count}");
-
         foreach (var slot in itemSlots)
         {
             if (slot != null && slot.gameObject != null)
@@ -229,6 +215,5 @@ public class InventoryManager : MonoBehaviour
 
         ClearDescriptionPanel();
 
-        Debug.Log("[InventoryManager] Inventory reset complete");
     }
 }

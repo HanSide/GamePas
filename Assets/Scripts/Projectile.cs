@@ -87,7 +87,7 @@ public class Projectile : MonoBehaviour
         if (hitEffectPrefab != null)
         {
             GameObject effect = Instantiate(hitEffectPrefab, position, Quaternion.identity);
-            Destroy(effect, 1f);
+            Destroy(effect, 0.8f);
         }
     }
 }

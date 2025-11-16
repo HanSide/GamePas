@@ -69,7 +69,7 @@ public class PlayerShooting : MonoBehaviour
 
         Vector3 spawnPosition = firePoint != null ? firePoint.position : transform.position;
 
-        Vector2 shootDirection = -lastMoveDirection; 
+        Vector2 shootDirection = lastMoveDirection; 
                                                      
 
         GameObject projectile = Instantiate(projectilePrefab, spawnPosition, Quaternion.identity);
